@@ -1,4 +1,4 @@
-// Estadísticas Nexus: actualización al abrir, añadir documento y hacer pull-to-refresh.
+// Estadísticas Nexus: solo actualiza al pulsar Actualizar o al añadir un documento nuevo.
 route=function(view,docId,push=true){
   const previousView=state.view;
   const doc=docId?docs.find(d=>d.id===docId):null;
@@ -8,8 +8,7 @@ route=function(view,docId,push=true){
   if(push){
     const payload={nexus:true,view,docId:doc?.id||null};
     const replaceFromMenu=previousView==="menu"&&["edit","general","individual","query","delete-confirm"].includes(view);
-    const replaceQueryResult=previousView==="query"&&view==="result";
-    if(replaceFromMenu||replaceQueryResult)history.replaceState(payload,"",location.href);
+    if(replaceFromMenu)history.replaceState(payload,"",location.href);
     else history.pushState(payload,"",location.href);
   }
   render();
@@ -23,6 +22,10 @@ applyHistory=function(h){
   if(state.view!=="result")state.rows=state.view==="query"?state.rows:null;
   render();
 };
+
+// Evita el recálculo automático que app-actions programa al iniciar la PWA.
+loadAllSummaries=async function(){};
+window.nexusManualRefreshing=false;
 
 async function spreadsheetIsPublic(url){
   const id=extractId(url);
@@ -58,28 +61,34 @@ document.addEventListener("click",e=>{
 
 async function refreshDocument(doc){
   if(!doc||state.loading[doc.id])return;
-  delete state.summary[doc.id];
   await loadSummary(doc);
 }
 
-let refreshAllRunning=false;
 async function refreshAllDocuments(){
-  if(refreshAllRunning)return;
-  refreshAllRunning=true;
+  if(window.nexusManualRefreshing)return;
+  window.nexusManualRefreshing=true;
+  render();
   try{
     for(const doc of docs){
       if(state.loading[doc.id])continue;
-      delete state.summary[doc.id];
       await loadSummary(doc);
     }
   }finally{
-    refreshAllRunning=false;
+    window.nexusManualRefreshing=false;
     render();
   }
 }
+window.refreshAllDocuments=refreshAllDocuments;
 
 document.addEventListener("click",async function(e){
   const t=e.target;
+
+  if(t.id==="refreshAllBtn"||t.closest?.("#refreshAllBtn")){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    await refreshAllDocuments();
+    return;
+  }
 
   if(t.id==="saveBtn"){
     e.preventDefault();
@@ -91,23 +100,16 @@ document.addEventListener("click",async function(e){
       return;
     }
     const btn=document.getElementById("saveBtn");
-    if(btn){
-      btn.disabled=true;
-      btn.textContent="Comprobando…";
-    }
+    if(btn){btn.disabled=true;btn.textContent="Comprobando…";}
     const canRead=await spreadsheetIsPublic(url);
     if(!canRead){
-      if(btn){
-        btn.disabled=false;
-        btn.textContent="Guardar";
-      }
+      if(btn){btn.disabled=false;btn.textContent="Guardar";}
       showPublicAccessWarning();
       return;
     }
     const doc={id:"d"+Date.now(),name,url};
     docs.push(doc);
     save();
-    delete state.summary[doc.id];
     goHomeReplace();
     setTimeout(()=>refreshDocument(doc),0);
     return;
@@ -123,41 +125,7 @@ document.addEventListener("click",async function(e){
       return;
     }
     const d=docs.find(x=>x.id===state.current?.id);
-    if(d){
-      d.name=name;
-      d.url=url;
-      save();
-    }
+    if(d){d.name=name;d.url=url;save();}
     goHomeReplace();
   }
 },true);
-
-let wasHidden=false;
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="hidden"){
-    wasHidden=true;
-  }else if(wasHidden){
-    wasHidden=false;
-    refreshAllDocuments();
-  }
-});
-
-let pullStartY=null;
-let pullDistance=0;
-document.addEventListener("touchstart",e=>{
-  if(state.view!=="home"||window.scrollY>0||e.touches.length!==1)return;
-  if(e.target.closest("button,input,select,.modal-bg,.bottom-sheet"))return;
-  pullStartY=e.touches[0].clientY;
-  pullDistance=0;
-},{passive:true});
-document.addEventListener("touchmove",e=>{
-  if(pullStartY===null||e.touches.length!==1)return;
-  pullDistance=Math.max(0,e.touches[0].clientY-pullStartY);
-},{passive:true});
-document.addEventListener("touchend",()=>{
-  if(pullStartY!==null&&pullDistance>=85){
-    refreshAllDocuments();
-  }
-  pullStartY=null;
-  pullDistance=0;
-},{passive:true});
