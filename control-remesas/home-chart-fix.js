@@ -50,11 +50,27 @@
     return '<section class="home-chart-card" id="homeCurrencyChart"><div class="home-chart-head"><div><h2>Comparación por hoja</h2><p>Cantidad de la moneda seleccionada en cada hoja</p></div><label class="home-chart-selector"><span>Moneda</span><select id="homeChartCurrency">'+options+'</select></label></div>'+body+'</section>';
   }
 
+  function addRefreshButton(){
+    const addBtn=document.getElementById('addBtn');
+    if(!addBtn||document.getElementById('refreshAllBtn'))return;
+    const wrapper=document.createElement('div');
+    wrapper.className='home-header-actions';
+    addBtn.parentNode.insertBefore(wrapper,addBtn);
+    const refresh=document.createElement('button');
+    refresh.className='btn btn-refresh';
+    refresh.id='refreshAllBtn';
+    refresh.disabled=!!window.nexusManualRefreshing;
+    refresh.innerHTML='<span class="refresh-icon">↻</span><span>'+(window.nexusManualRefreshing?'Actualizando…':'Actualizar')+'</span>';
+    wrapper.appendChild(refresh);
+    wrapper.appendChild(addBtn);
+  }
+
   function enhanceHome(){
     if(state.view!=="home")return;
     document.querySelectorAll('.doc-card .card-foot span').forEach(span=>{
       if(span.textContent.trim()==="Totales del documento")span.remove();
     });
+    addRefreshButton();
     const main=document.querySelector('main.main');
     if(!main||!docs.length)return;
     document.getElementById('homeCurrencyChart')?.remove();
