@@ -19,6 +19,7 @@
 
   window.__nexusReloadRefreshStarted=true;
   window.__nexusReloadRefreshComplete=false;
+  window.__nexusReloadRefreshRunning=false;
 
   // En una recarga real no mostramos datos guardados mientras se calcula de nuevo.
   state.summary={};
@@ -35,14 +36,16 @@
     return baseCurrencyHtml(doc);
   };
 
-  async function run(){
+  window.__nexusRunReloadRefresh=async function(){
+    if(window.__nexusReloadRefreshRunning||window.__nexusReloadRefreshComplete)return;
+    if(typeof window.refreshAllDocuments!=="function")return;
+    window.__nexusReloadRefreshRunning=true;
     try{
-      if(typeof window.refreshAllDocuments==="function")await window.refreshAllDocuments();
+      await window.refreshAllDocuments();
     }finally{
+      window.__nexusReloadRefreshRunning=false;
       window.__nexusReloadRefreshComplete=true;
       render();
     }
-  }
-
-  run();
+  };
 })();
