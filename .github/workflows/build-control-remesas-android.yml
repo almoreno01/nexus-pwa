@@ -3,6 +3,7 @@ name: Build Control Remesas APK
 on:
   push:
     branches:
+      - main
       - agent/control-remesas-android-build
     paths:
       - 'android-control-remesas/**'
