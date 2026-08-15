@@ -27,7 +27,7 @@
   function addRefreshButton(){
     const addBtn=document.getElementById('addBtn');if(!addBtn||document.getElementById('refreshAllBtn'))return;
     const wrapper=document.createElement('div');wrapper.className='home-header-actions';addBtn.parentNode.insertBefore(wrapper,addBtn);
-    const refresh=document.createElement('button');refresh.className='btn btn-refresh';refresh.id='refreshAllBtn';refresh.disabled=!!window.nexusManualRefreshing;refresh.innerHTML='<span class="refresh-icon">↻</span><span>'+(window.nexusManualRefreshing?'Actualizando…':'Actualizar')+'</span>';
+    const refresh=document.createElement('button');refresh.className='btn btn-refresh';refresh.id='refreshAllBtn';refresh.disabled=!!window.nexusManualRefreshing;refresh.title=window.nexusManualRefreshing?'Actualizando…':'Actualizar';refresh.setAttribute('aria-label',refresh.title);refresh.innerHTML='<img class="refresh-logo-icon" src="./app-icon.svg?v=manual-refresh-20260815" alt="">';
     wrapper.appendChild(refresh);wrapper.appendChild(addBtn);
   }
   function enhanceHome(){
