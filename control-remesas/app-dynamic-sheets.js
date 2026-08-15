@@ -1,4 +1,3 @@
-const NEXUS_SHEET_CANDIDATES=[...new Set(ALL_SHEETS)];
 const NEXUS_SUMMARY_CACHE_KEY="estadisticas_nexus_summary_v1";
 try{
   const cached=JSON.parse(localStorage.getItem(NEXUS_SUMMARY_CACHE_KEY)||"{}");
@@ -11,42 +10,30 @@ function normalizeSheetName(v){return String(v||"").replace(/^\uFEFF/,"").replac
 function sameSheetName(a,b){return normalizeSheetName(a)===normalizeSheetName(b);}
 function markerMatchesRequestedSheet(marker,sheet){return sameSheetName(marker,sheet);}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-async function fetchVerifiedSheetRows(doc,sheet){let lastError=null;for(let attempt=0;attempt<3;attempt++){try{const rows=await fetchSheetRows(doc,sheet);const marker=rows&&rows[0]?rows[0][0]:"";if(!markerMatchesRequestedSheet(marker,sheet))throw new Error("La hoja solicitada no coincide con la hoja devuelta");return rows;}catch(e){lastError=e;if(attempt<2)await sleep(180*(attempt+1));}}throw lastError||new Error("No se pudo leer la hoja");}
 function firstDateInRows(rows){for(const row of rows){const d=parseDateDMY(row[0]);if(d)return d;}return null;}
 function monthDaysFromDate(d){return d?new Date(d.getFullYear(),d.getMonth()+1,0).getDate():0;}
-async function fetchGvizJson(doc,sheet,range){
+function checkboxValueIsChecked(v){
+  if(v===true||v===1)return true;
+  if(v===false||v===0||v==null)return false;
+  const s=String(v).trim().toLocaleUpperCase("es-MX");
+  return s==="TRUE"||s==="VERDADERO"||s==="1"||s==="SI"||s==="SÍ";
+}
+async function discoverWorkbookSheets(doc){
   const id=extractId(doc.url);
   if(!id)throw new Error("Enlace no válido");
-  const url="https://docs.google.com/spreadsheets/d/"+encodeURIComponent(id)+"/gviz/tq?tqx=out:json&headers=0&range="+encodeURIComponent(range)+"&sheet="+encodeURIComponent(sheet);
+  if(!window.XLSX)throw new Error("No se pudo cargar el lector de Google Sheets");
+  const url="https://docs.google.com/spreadsheets/d/"+encodeURIComponent(id)+"/export?format=xlsx";
   const r=await fetch(url,{cache:"no-store"});
-  if(!r.ok)throw new Error("Google respondió "+r.status);
-  const text=await r.text();
-  if(/<!doctype html|<html/i.test(text)||/sign in|iniciar sesi[oó]n/i.test(text))throw new Error("El documento no tiene acceso por enlace");
-  const start=text.indexOf("{"),end=text.lastIndexOf("}");
-  if(start<0||end<=start)throw new Error("Respuesta de Google no válida");
-  return JSON.parse(text.slice(start,end+1));
-}
-function checkboxIsChecked(payload){
-  const cell=payload?.table?.rows?.[0]?.c?.[0];
-  const values=[cell?.v,cell?.f].filter(v=>v!==undefined&&v!==null);
-  return values.some(v=>{
-    if(v===true||v===1)return true;
-    const s=String(v).trim().toLocaleUpperCase("es-MX");
-    return s==="TRUE"||s==="VERDADERO"||s==="1"||s==="SI"||s==="SÍ";
+  if(!r.ok)throw new Error("No se pudo leer la estructura del documento");
+  const type=(r.headers.get("content-type")||"").toLowerCase();
+  if(type.includes("text/html"))throw new Error("El documento no tiene acceso mediante vínculo");
+  const wb=XLSX.read(await r.arrayBuffer(),{cellFormula:true,cellDates:true});
+  return wb.SheetNames.map(name=>{
+    const ws=wb.Sheets[name];
+    const cell=ws&&ws["U1"];
+    const values=[cell?.v,cell?.w].filter(v=>v!==undefined&&v!==null);
+    return {name,enabled:values.some(checkboxValueIsChecked)};
   });
-}
-async function inspectSheetActivation(doc,sheet){
-  try{
-    if(typeof probeRequestedSheet==="function"){
-      const exists=await probeRequestedSheet(doc,sheet);
-      if(!exists)return {exists:false,enabled:false};
-    }
-    const payload=await fetchGvizJson(doc,sheet,"U1:U1");
-    if(payload.status&&payload.status!=="ok")return {exists:false,enabled:false};
-    return {exists:true,enabled:checkboxIsChecked(payload)};
-  }catch(e){
-    return {exists:false,enabled:false,error:e};
-  }
 }
 function defaultFilter(docId){
   const summary=state.summary[docId],actual=summary?.sheetNames||[];
@@ -74,31 +61,34 @@ async function loadSummary(doc){
   state.loading[doc.id]=true;
   render();
   const totals={USA:0,EUR:0,MXC:0,CAD:0,REAL:0},workers={},sheetNames=[];
-  let monthDate=null,realSheetCount=0;
-  for(const sheet of NEXUS_SHEET_CANDIDATES){
-    const status=await inspectSheetActivation(doc,sheet);
-    if(!status.exists)continue;
-    realSheetCount++;
-    if(!status.enabled)continue;
-    try{
-      const rows=await fetchVerifiedSheetRows(doc,sheet),wt={USA:0,EUR:0,MXC:0,CAD:0,REAL:0};
-      sheetNames.push(sheet);
-      if(!monthDate)monthDate=firstDateInRows(rows);
-      for(const row of rows){
-        const code=String(row[1]||"").trim().toUpperCase(),raw=row[2];
-        if(!Object.prototype.hasOwnProperty.call(totals,code))continue;
-        if(raw==null||String(raw).trim()==="")continue;
-        const amount=parseAmount(raw);
-        totals[code]+=amount;
-        wt[code]+=amount;
-      }
-      workers[sheet]={totals:wt};
-    }catch(e){}
+  let monthDate=null;
+  try{
+    const workbookSheets=await discoverWorkbookSheets(doc);
+    for(const info of workbookSheets){
+      if(!info.enabled)continue;
+      const sheet=info.name;
+      try{
+        const rows=await fetchSheetRows(doc,sheet),wt={USA:0,EUR:0,MXC:0,CAD:0,REAL:0};
+        sheetNames.push(sheet);
+        if(!monthDate)monthDate=firstDateInRows(rows);
+        for(const row of rows){
+          const code=String(row[1]||"").trim().toUpperCase(),raw=row[2];
+          if(!Object.prototype.hasOwnProperty.call(totals,code))continue;
+          if(raw==null||String(raw).trim()==="")continue;
+          const amount=parseAmount(raw);
+          totals[code]+=amount;
+          wt[code]+=amount;
+        }
+        workers[sheet]={totals:wt};
+      }catch(e){}
+    }
+    Object.keys(totals).forEach(k=>totals[k]=Math.round((totals[k]+Number.EPSILON)*100)/100);
+    Object.values(workers).forEach(w=>Object.keys(w.totals).forEach(k=>w.totals[k]=Math.round((w.totals[k]+Number.EPSILON)*100)/100));
+    const daysInMonth=monthDaysFromDate(monthDate);
+    state.summary[doc.id]={totals,workers,sheetNames,daysInMonth,month:monthDate?monthDate.getMonth()+1:null,year:monthDate?monthDate.getFullYear():null,error:false};
+  }catch(e){
+    state.summary[doc.id]={totals,workers,sheetNames,daysInMonth:0,error:true,errorMessage:e?.message||String(e)};
   }
-  Object.keys(totals).forEach(k=>totals[k]=Math.round((totals[k]+Number.EPSILON)*100)/100);
-  Object.values(workers).forEach(w=>Object.keys(w.totals).forEach(k=>w.totals[k]=Math.round((w.totals[k]+Number.EPSILON)*100)/100));
-  const daysInMonth=monthDaysFromDate(monthDate);
-  state.summary[doc.id]={totals,workers,sheetNames,daysInMonth,month:monthDate?monthDate.getMonth()+1:null,year:monthDate?monthDate.getFullYear():null,error:realSheetCount===0};
   state.loading[doc.id]=false;
   saveSummaryCache();
   const f=defaultFilter(doc.id);
