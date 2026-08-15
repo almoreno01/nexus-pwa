@@ -22,5 +22,6 @@
   // El temporizador heredado de app-actions nunca debe iniciar otra lectura al arrancar.
   loadAllSummaries=async function(){};
 
+  if(typeof window.__nexusRunReloadRefresh==="function")window.__nexusRunReloadRefresh();
   render();
 })();
