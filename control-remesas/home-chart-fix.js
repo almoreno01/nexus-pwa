@@ -14,30 +14,39 @@
     render();
   };
   function chartRows(code){
-    const rows=[],showDocument=docs.length>1;
-    docs.forEach(doc=>{const summary=state.summary[doc.id];(summary?.sheetNames||[]).forEach(sheet=>rows.push({label:showDocument?doc.name+" · "+sheet:sheet,value:Number(summary?.workers?.[sheet]?.totals?.[code]||0)}));});
-    return rows;
+    return docs.map(doc=>({label:doc.name,value:Number(state.summary[doc.id]?.totals?.[code]||0)}));
   }
   function chartHtml(){
     const code=state.homeChartCurrency||"USA",rows=chartRows(code),isLoading=docs.some(doc=>state.loading[doc.id]),max=Math.max(1,...rows.map(row=>Math.abs(row.value)));
     const options=HOME_CHART_CURRENCIES.map(([value,label])=>'<option value="'+value+'" '+(value===code?'selected':'')+'>'+label+'</option>').join("");
-    const body=!rows.length?'<div class="home-chart-empty">'+(isLoading?'Actualizando gráfico…':'No hay hojas activas para graficar.')+'</div>':'<div class="home-bars">'+rows.map(row=>{const pct=Math.max(0,Math.min(100,(Math.abs(row.value)/max)*100));return '<div class="home-bar-row"><div class="home-bar-label" title="'+esc(row.label)+'">'+esc(row.label)+'</div><div class="home-bar-track"><div class="home-bar-fill" style="--bar-width:'+pct.toFixed(2)+'%"></div></div><div class="home-bar-value">'+money(row.value)+'</div></div>';}).join("")+'</div>';
-    return '<section class="home-chart-card" id="homeCurrencyChart"><div class="home-chart-head"><div><h2>Comparación por hoja</h2><p>Cantidad de la moneda seleccionada en cada hoja</p></div><label class="home-chart-selector"><span>Moneda</span><select id="homeChartCurrency">'+options+'</select></label></div>'+body+'</section>';
+    const body=!rows.length?'<div class="home-chart-empty">'+(isLoading?'Actualizando gráfico…':'No hay documentos para graficar.')+'</div>':'<div class="home-bars">'+rows.map(row=>{const pct=Math.max(0,Math.min(100,(Math.abs(row.value)/max)*100));return '<div class="home-bar-row"><div class="home-bar-label" title="'+esc(row.label)+'">'+esc(row.label)+'</div><div class="home-bar-track"><div class="home-bar-fill" style="--bar-width:'+pct.toFixed(2)+'%"></div></div><div class="home-bar-value">'+money(row.value)+'</div></div>';}).join("")+'</div>';
+    return '<section class="home-chart-card" id="homeCurrencyChart"><div class="home-chart-head"><div><h2>Comparación por documento</h2><p>Cantidad de la moneda seleccionada en cada documento</p></div><label class="home-chart-selector"><span>Moneda</span><select id="homeChartCurrency">'+options+'</select></label></div>'+body+'</section>';
   }
-  function addRefreshButton(){
-    const addBtn=document.getElementById('addBtn');if(!addBtn||document.getElementById('refreshAllBtn'))return;
-    const wrapper=document.createElement('div');wrapper.className='home-header-actions';addBtn.parentNode.insertBefore(wrapper,addBtn);
-    const refresh=document.createElement('button');refresh.className='btn btn-refresh';refresh.id='refreshAllBtn';refresh.disabled=!!window.nexusManualRefreshing;refresh.title=window.nexusManualRefreshing?'Actualizando…':'Actualizar';refresh.setAttribute('aria-label',refresh.title);refresh.innerHTML='<img class="refresh-logo-icon" src="./app-icon.svg?v=manual-refresh-20260815" alt="">';
-    wrapper.appendChild(refresh);wrapper.appendChild(addBtn);
+  function makeLogoRefreshControl(){
+    const logo=document.querySelector('.hero .brand-mark-logo');
+    if(!logo)return;
+    logo.id='refreshAllBtn';
+    logo.classList.add('logo-refresh-control');
+    logo.classList.toggle('is-refreshing',!!window.nexusManualRefreshing);
+    logo.setAttribute('role','button');
+    logo.setAttribute('tabindex','0');
+    logo.setAttribute('title',window.nexusManualRefreshing?'Actualizando…':'Actualizar todo');
+    logo.setAttribute('aria-label',window.nexusManualRefreshing?'Actualizando…':'Actualizar todo');
   }
   function enhanceHome(){
     if(state.view!=="home")return;
     document.querySelectorAll('.doc-card .card-foot span').forEach(span=>{if(span.textContent.trim()==="Totales del documento")span.remove();});
-    addRefreshButton();
+    document.getElementById('refreshAllBtn')?.closest?.('.btn-refresh')?.remove();
+    makeLogoRefreshControl();
     const main=document.querySelector('main.main');if(!main||!docs.length)return;
     document.getElementById('homeCurrencyChart')?.remove();main.insertAdjacentHTML('beforeend',chartHtml());
   }
   const baseRender=render;render=function(){baseRender();enhanceHome();};
   document.addEventListener('change',e=>{if(e.target.id!=="homeChartCurrency")return;state.homeChartCurrency=e.target.value;render();});
+  document.addEventListener('keydown',e=>{
+    if(e.target.id!=="refreshAllBtn"||!(e.key==='Enter'||e.key===' '))return;
+    e.preventDefault();
+    e.target.click();
+  });
   enhanceHome();
 })();
