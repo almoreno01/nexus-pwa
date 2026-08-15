@@ -1,4 +1,4 @@
-const NEXUS_LOGO='<img class="nexus-app-logo" src="./app-icon.svg" alt="Estadísticas Nexus">';
+const NEXUS_LOGO='<img class="nexus-app-logo" src="./app-icon.svg?v=u1-20260815" alt="Estadísticas Nexus">';
 
 homeHtml=function(){
   const cards=docs.length?'<div class="docs-grid">'+docs.map(doc=>{
