@@ -20,24 +20,34 @@
   };
 
   function isBrowserReload(){
+    let reload=false;
     try{
       const nav=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];
-      if(nav&&nav.type==="reload")return true;
-      return !!(performance.navigation&&performance.navigation.type===1);
-    }catch(e){
-      return false;
-    }
+      if(nav&&nav.type==="reload")reload=true;
+      else if(performance.navigation&&performance.navigation.type===1)reload=true;
+    }catch(e){}
+    try{
+      const key="nexus_page_loaded_in_this_tab";
+      const alreadyLoaded=sessionStorage.getItem(key)==="1";
+      sessionStorage.setItem(key,"1");
+      if(alreadyLoaded)reload=true;
+    }catch(e){}
+    return reload;
   }
 
+  // El temporizador de app-actions no debe iniciar otra lectura al arrancar.
   loadAllSummaries=async function(){};
 
   async function refreshOnReload(){
     if(!isBrowserReload()||window.__nexusReloadRefreshStarted)return;
     window.__nexusReloadRefreshStarted=true;
     if(typeof window.refreshAllDocuments!=="function")return;
+    // Una recarga empieza siempre desde una ejecución limpia y usa exactamente
+    // la misma función de actualización que el logo del Home.
+    state.loading={};
     await window.refreshAllDocuments();
   }
 
-  setTimeout(refreshOnReload,0);
+  refreshOnReload();
   render();
 })();
