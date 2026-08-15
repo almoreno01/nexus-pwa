@@ -17,9 +17,9 @@
     return docs.map(doc=>({label:doc.name,value:Number(state.summary[doc.id]?.totals?.[code]||0)}));
   }
   function chartHtml(){
-    const code=state.homeChartCurrency||"USA",rows=chartRows(code),isLoading=docs.some(doc=>state.loading[doc.id]),max=Math.max(1,...rows.map(row=>Math.abs(row.value)));
+    const code=state.homeChartCurrency||"USA",rows=chartRows(code),reloadLoading=!!(window.__nexusReloadRefreshStarted&&!window.__nexusReloadRefreshComplete),isLoading=reloadLoading||docs.some(doc=>state.loading[doc.id]),max=Math.max(1,...rows.map(row=>Math.abs(row.value)));
     const options=HOME_CHART_CURRENCIES.map(([value,label])=>'<option value="'+value+'" '+(value===code?'selected':'')+'>'+label+'</option>').join("");
-    const body=!rows.length?'<div class="home-chart-empty">'+(isLoading?'Actualizando gráfico…':'No hay documentos para graficar.')+'</div>':'<div class="home-bars">'+rows.map(row=>{const pct=Math.max(0,Math.min(100,(Math.abs(row.value)/max)*100));return '<div class="home-bar-row"><div class="home-bar-label" title="'+esc(row.label)+'">'+esc(row.label)+'</div><div class="home-bar-track"><div class="home-bar-fill" style="--bar-width:'+pct.toFixed(2)+'%"></div></div><div class="home-bar-value">'+money(row.value)+'</div></div>';}).join("")+'</div>';
+    const body=isLoading?'<div class="home-chart-empty">Actualizando gráfico…</div>':!rows.length?'<div class="home-chart-empty">No hay documentos para graficar.</div>':'<div class="home-bars">'+rows.map(row=>{const pct=Math.max(0,Math.min(100,(Math.abs(row.value)/max)*100));return '<div class="home-bar-row"><div class="home-bar-label" title="'+esc(row.label)+'">'+esc(row.label)+'</div><div class="home-bar-track"><div class="home-bar-fill" style="--bar-width:'+pct.toFixed(2)+'%"></div></div><div class="home-bar-value">'+money(row.value)+'</div></div>';}).join("")+'</div>';
     return '<section class="home-chart-card" id="homeCurrencyChart"><div class="home-chart-head"><div><h2>Comparación por documento</h2><p>Cantidad de la moneda seleccionada en cada documento</p></div><label class="home-chart-selector"><span>Moneda</span><select id="homeChartCurrency">'+options+'</select></label></div>'+body+'</section>';
   }
   function makeLogoRefreshControl(){
