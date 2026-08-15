@@ -22,17 +22,22 @@
   function isBrowserReload(){
     try{
       const nav=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];
-      if(nav)return nav.type==="reload";
+      if(nav&&nav.type==="reload")return true;
       return !!(performance.navigation&&performance.navigation.type===1);
     }catch(e){
       return false;
     }
   }
 
-  loadAllSummaries=async function(){
-    if(!isBrowserReload()||typeof refreshAllDocuments!=="function")return;
-    await refreshAllDocuments();
-  };
+  loadAllSummaries=async function(){};
 
+  async function refreshOnReload(){
+    if(!isBrowserReload()||window.__nexusReloadRefreshStarted)return;
+    window.__nexusReloadRefreshStarted=true;
+    if(typeof window.refreshAllDocuments!=="function")return;
+    await window.refreshAllDocuments();
+  }
+
+  setTimeout(refreshOnReload,0);
   render();
 })();
