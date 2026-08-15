@@ -15,7 +15,7 @@ async function probeRequestedSheet(doc,sheet){
   if(cell){values.push(cell.v);values.push(cell.f);}
   const col=payload&&payload.table&&payload.table.cols&&payload.table.cols[0];
   if(col)values.push(col.label);
-  return values.some(v=>sameSheetName(v,sheet));
+  return values.some(v=>typeof markerMatchesRequestedSheet==="function"?markerMatchesRequestedSheet(v,sheet):sameSheetName(v,sheet));
 }
 
 async function fetchVerifiedSheetRows(doc,sheet){
