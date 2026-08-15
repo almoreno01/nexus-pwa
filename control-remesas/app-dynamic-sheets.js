@@ -1,9 +1,15 @@
-const NEXUS_BASE_SHEET_CANDIDATES=[...ALL_SHEETS];
-const NEXUS_SHEET_CANDIDATES=[...new Set(NEXUS_BASE_SHEET_CANDIDATES.flatMap(name=>{const out=[name];let copy=name;for(let i=0;i<4;i++){copy="Copia de "+copy;out.push(copy);}return out;}))];
+const NEXUS_SHEET_CANDIDATES=[...new Set(ALL_SHEETS)];
+const NEXUS_SUMMARY_CACHE_KEY="estadisticas_nexus_summary_v1";
+try{
+  const cached=JSON.parse(localStorage.getItem(NEXUS_SUMMARY_CACHE_KEY)||"{}");
+  if(cached&&typeof cached==="object"&&!Array.isArray(cached))state.summary=cached;
+}catch(e){}
+function saveSummaryCache(){
+  try{localStorage.setItem(NEXUS_SUMMARY_CACHE_KEY,JSON.stringify(state.summary||{}));}catch(e){}
+}
 function normalizeSheetName(v){return String(v||"").replace(/^\uFEFF/,"").replace(/[\u200B-\u200D\u2060]/g,"").trim().toLocaleUpperCase("es-MX");}
 function sameSheetName(a,b){return normalizeSheetName(a)===normalizeSheetName(b);}
-function canonicalSheetMarker(v){let s=normalizeSheetName(v);while(s.startsWith("COPIA DE "))s=s.slice(9).trim();return s;}
-function markerMatchesRequestedSheet(marker,sheet){return sameSheetName(marker,sheet)||canonicalSheetMarker(marker)===canonicalSheetMarker(sheet);}
+function markerMatchesRequestedSheet(marker,sheet){return sameSheetName(marker,sheet);}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function fetchVerifiedSheetRows(doc,sheet){let lastError=null;for(let attempt=0;attempt<3;attempt++){try{const rows=await fetchSheetRows(doc,sheet);const marker=rows&&rows[0]?rows[0][0]:"";if(!markerMatchesRequestedSheet(marker,sheet))throw new Error("La hoja solicitada no coincide con la hoja devuelta");return rows;}catch(e){lastError=e;if(attempt<2)await sleep(180*(attempt+1));}}throw lastError||new Error("No se pudo leer la hoja");}
 function firstDateInRows(rows){for(const row of rows){const d=parseDateDMY(row[0]);if(d)return d;}return null;}
@@ -99,6 +105,7 @@ async function loadSummary(doc){
     error:realSheetCount===0
   };
   state.loading[doc.id]=false;
+  saveSummaryCache();
   const f=defaultFilter(doc.id);
   if(sheetNames.length&&!sheetNames.includes(f.sheet))f.sheet=sheetNames[0];
   render();
