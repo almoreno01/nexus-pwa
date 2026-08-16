@@ -1,4 +1,5 @@
 (function(){
+  const slowDiscovery=window.discoverWorkbookSheets;
   const EXTRA_KNOWN_SHEETS=[
     "ROLY","ELIECER","SAMI","ERIC","PAPE","ANA BEATRIZ","MALCOLM","JAVIER-USA","JAVIER-PAISES"
   ];
@@ -57,8 +58,8 @@
     }catch(e){return "";}
   }
 
-  function candidateSheetNames(doc){
-    const set=new Set([...(window.ALL_SHEETS||ALL_SHEETS||[]),...EXTRA_KNOWN_SHEETS]);
+  function candidateSheetNames(){
+    const set=new Set([...(typeof ALL_SHEETS!=="undefined"?ALL_SHEETS:[]),...EXTRA_KNOWN_SHEETS]);
     try{
       Object.values(state.summary||{}).forEach(summary=>{
         (summary?.sheetNames||[]).forEach(name=>set.add(name));
@@ -68,7 +69,7 @@
   }
 
   discoverWorkbookSheets=async function(doc){
-    const candidates=candidateSheetNames(doc);
+    const candidates=candidateSheetNames();
     const first=await firstSheetMarker(doc);
     if(first&&!candidates.some(name=>normalize(name)===normalize(first)))candidates.unshift(first);
 
@@ -87,11 +88,9 @@
     const existing=result.filter(item=>item&&item.exists);
     if(existing.length)return existing;
 
-    // Respaldo para documentos con nombres totalmente nuevos: usa el detector completo
-    // solo cuando el barrido rápido no reconoció ninguna pestaña real.
-    if(typeof window.__nexusSlowWorkbookDiscovery==="function"){
-      return window.__nexusSlowWorkbookDiscovery(doc);
-    }
+    // Solo si el documento usa nombres de pestaña totalmente nuevos hacemos el
+    // descubrimiento XLSX completo como respaldo.
+    if(typeof slowDiscovery==="function")return slowDiscovery(doc);
     return [];
   };
 })();
