@@ -3,8 +3,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:allowBackup="true"
-        android:label="Control de Remesas"
+        android:allowBackup="false"
+        android:icon="@drawable/nexus_stats_icon"
+        android:roundIcon="@drawable/nexus_stats_icon"
+        android:label="Nexus Stats"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
