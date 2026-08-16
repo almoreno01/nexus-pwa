@@ -17,11 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare launcher icon
-        run: |
-          mkdir -p android-control-remesas/app/src/main/res/drawable
-          base64 --decode android-control-remesas/nexus-stats-icon.b64 > android-control-remesas/app/src/main/res/drawable/nexus_stats_icon.png
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
