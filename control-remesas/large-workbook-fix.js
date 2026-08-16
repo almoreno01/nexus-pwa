@@ -14,7 +14,7 @@
     const url="https://docs.google.com/spreadsheets/d/"+encodeURIComponent(id)+
       "/gviz/tq?tqx=out:csv&headers=0&range=U1:U1&sheet="+encodeURIComponent(sheet)+
       "&_="+Date.now();
-    const r=await timeoutFetch(url,{cache:"no-store"},10000);
+    const r=await timeoutFetch(url,{cache:"no-store"},12000);
     if(!r.ok)throw new Error("No se pudo comprobar U1 de "+sheet);
     const type=(r.headers.get("content-type")||"").toLowerCase();
     const text=await r.text();
@@ -31,7 +31,7 @@
     if(!window.XLSX)throw new Error("No se pudo cargar el lector de Google Sheets");
 
     const exportUrl="https://docs.google.com/spreadsheets/d/"+encodeURIComponent(id)+"/export?format=xlsx&_="+Date.now();
-    const response=await timeoutFetch(exportUrl,{cache:"no-store"},25000);
+    const response=await timeoutFetch(exportUrl,{cache:"no-store"},60000);
     if(!response.ok)throw new Error("No se pudo leer la estructura del documento");
     const type=(response.headers.get("content-type")||"").toLowerCase();
     if(type.includes("text/html"))throw new Error("El documento no tiene acceso mediante vínculo");
@@ -39,6 +39,8 @@
     const data=await response.arrayBuffer();
     let workbook;
     try{
+      // bookSheets evita procesar las miles de celdas del archivo: solo necesitamos
+      // los nombres reales de las pestañas en esta fase.
       workbook=XLSX.read(data,{bookSheets:true,bookProps:false});
     }catch(e){
       throw new Error("No se pudo leer la lista de hojas del documento");
@@ -49,7 +51,7 @@
     let cursor=0;
     let failed=0;
     let firstError=null;
-    const concurrency=Math.min(6,names.length||1);
+    const concurrency=Math.min(8,names.length||1);
 
     async function worker(){
       while(true){
