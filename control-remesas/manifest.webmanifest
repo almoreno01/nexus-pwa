@@ -1,0 +1,17 @@
+{
+  "name": "Estadísticas Nexus",
+  "short_name": "Estadísticas Nexus",
+  "start_url": "/nexus-pwa/control-remesas/",
+  "scope": "/nexus-pwa/control-remesas/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    {
+      "src": "./app-icon.svg?v=ios-home-20260815",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
