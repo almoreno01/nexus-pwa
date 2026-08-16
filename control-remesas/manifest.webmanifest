@@ -1,6 +1,6 @@
 {
-  "name": "Estadísticas Nexus",
-  "short_name": "Estadísticas Nexus",
+  "name": "Nexus Stats",
+  "short_name": "Nexus Stats",
   "start_url": "/nexus-pwa/control-remesas/",
   "scope": "/nexus-pwa/control-remesas/",
   "display": "standalone",
