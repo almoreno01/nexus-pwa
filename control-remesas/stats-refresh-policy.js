@@ -1,4 +1,4 @@
-// Estadísticas Nexus: solo actualiza al pulsar Actualizar o al añadir un documento nuevo.
+// Nexus Stats: solo actualiza al pulsar el logo o al añadir un documento nuevo.
 route=function(view,docId,push=true){
   const previousView=state.view;
   const doc=docId?docs.find(d=>d.id===docId):null;
@@ -45,7 +45,12 @@ async function refreshDocument(doc){if(!doc||state.loading[doc.id])return;await 
 async function refreshAllDocuments(){
   if(window.nexusManualRefreshing)return;
   window.nexusManualRefreshing=true;render();
-  try{for(const doc of docs){if(state.loading[doc.id])continue;await loadSummary(doc);}}
+  try{
+    for(const doc of docs){
+      if(doc?.locked||state.loading[doc.id])continue;
+      await loadSummary(doc);
+    }
+  }
   finally{window.nexusManualRefreshing=false;render();}
 }
 window.refreshAllDocuments=refreshAllDocuments;
@@ -62,7 +67,7 @@ document.addEventListener("click",async function(e){
     const btn=document.getElementById("saveBtn");if(btn){btn.disabled=true;btn.textContent="Comprobando…";}
     const canRead=await spreadsheetIsPublic(url);
     if(!canRead){if(btn){btn.disabled=false;btn.textContent="Guardar";}showPublicAccessWarning();return;}
-    const doc={id:"d"+Date.now(),name,url};docs.push(doc);save();goHomeReplace();setTimeout(()=>refreshDocument(doc),0);return;
+    const doc={id:"d"+Date.now(),name,url,locked:false};docs.push(doc);save();goHomeReplace();setTimeout(()=>refreshDocument(doc),0);return;
   }
   if(t.id==="saveEditBtn"){
     e.preventDefault();e.stopImmediatePropagation();

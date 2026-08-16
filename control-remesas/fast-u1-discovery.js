@@ -1,7 +1,7 @@
 (function(){
-  const slowDiscovery=window.discoverWorkbookSheets;
+  const exactDiscovery=window.discoverWorkbookSheets;
   const EXTRA_KNOWN_SHEETS=[
-    "ROLY","ELIECER","SAMI","ERIC","PAPE","ANA BEATRIZ","MALCOLM","JAVIER-USA","JAVIER-PAISES"
+    "ROLY","ELIECER","SAMI","ERIC","PAPE","ANA BEATRIZ","ANA","MALCOLM","LUISANGEL","LEYVIS","JAVIER-USA","JAVIER-PAISES","JAVIER-USD"
   ];
 
   function normalize(v){
@@ -68,7 +68,7 @@
     return [...set].filter(Boolean);
   }
 
-  discoverWorkbookSheets=async function(doc){
+  async function fallbackDiscovery(doc){
     const candidates=candidateSheetNames();
     const first=await firstSheetMarker(doc);
     if(first&&!candidates.some(name=>normalize(name)===normalize(first)))candidates.unshift(first);
@@ -84,13 +84,20 @@
       }
     }
     await Promise.all(Array.from({length:concurrency},worker));
+    return result.filter(item=>item&&item.exists);
+  }
 
-    const existing=result.filter(item=>item&&item.exists);
-    if(existing.length)return existing;
-
-    // Solo si el documento usa nombres de pestaña totalmente nuevos hacemos el
-    // descubrimiento XLSX completo como respaldo.
-    if(typeof slowDiscovery==="function")return slowDiscovery(doc);
-    return [];
+  discoverWorkbookSheets=async function(doc){
+    // Fuente principal: la estructura real del workbook. Esto conserva el nombre
+    // exacto de cada pestaña y no depende de que A1 coincida con el nombre.
+    if(typeof exactDiscovery==="function"){
+      try{
+        const exact=await exactDiscovery(doc);
+        if(Array.isArray(exact)&&exact.length)return exact;
+      }catch(e){
+        // Si Google no permite obtener el XLSX, mantenemos el barrido rápido como respaldo.
+      }
+    }
+    return fallbackDiscovery(doc);
   };
 })();
