@@ -1,0 +1,10 @@
+{
+  "name": "Nexus Consulta",
+  "short_name": "Nexus Consulta",
+  "start_url": "/nexus-pwa/nexus-consulta/",
+  "scope": "/nexus-pwa/nexus-consulta/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [{"src":"./app-icon.svg?v=nexus-consulta-20260817","sizes":"any","type":"image/svg+xml","purpose":"any"}]
+}
