@@ -16,7 +16,7 @@
   // 2) El panel de los tres puntos solo contiene Editar y Eliminar.
   menuHtml = function(){
     const d = state.current;
-    return `<div class="sheet-bg"><div class="bottom-sheet"><div class="sheet-handle"></div><div class="sheet-title"><h3>${esc(d.name)}</h3><p>Selecciona una opción</p></div><button class="sheet-option" data-action="edit"><span class="sheet-icon">✎</span><span><strong>Editar</strong><span>Cambiar nombre o enlace</span></span></button><button class="sheet-option danger" data-action="delete"><span class="sheet-icon">⌫</span><span><strong>Eliminar</strong><span>Quitar este documento</span></span></button></div></div>`;
+    return `<div class="sheet-bg" id="docMenuBackdrop"><div class="bottom-sheet"><div class="sheet-handle"></div><div class="sheet-title"><h3>${esc(d.name)}</h3><p>Selecciona una opción</p></div><button class="sheet-option" data-action="edit"><span class="sheet-icon">✎</span><span><strong>Editar</strong><span>Cambiar nombre o enlace</span></span></button><button class="sheet-option danger" data-action="delete"><span class="sheet-icon">⌫</span><span><strong>Eliminar</strong><span>Quitar este documento</span></span></button></div></div>`;
   };
 
   // 3) La consulta no muestra ni columnas ni resúmenes de cantidad de operaciones.
@@ -36,6 +36,22 @@
 
     return `<div class="app-shell"><header class="detail-hero"><div class="detail-inner"><div class="back" id="backHome">← Volver</div><div class="detail-title"><div><h1>${esc(d.name)}</h1><p>Consulta consolidada</p></div></div></div></header><main class="main"><section class="filters-card query-only-card"><div class="query-date-grid"><div class="field"><label>Fecha inicial</label><input type="date" id="from" value="${esc(f.from)}"></div><div class="field"><label>Fecha final</label><input type="date" id="to" value="${esc(f.to)}"></div><button class="btn btn-blue filter-action" id="queryBtn" ${state.loading?'disabled':''}>${state.loading?'Procesando…':'Consultar'}</button></div>${result}</section></main></div>`;
   };
+
+  function closeDocMenu(fromHistory){
+    if(state.view !== 'menu') return;
+
+    // Si el panel creó una entrada de historial, al tocar fuera la retiramos
+    // correctamente para que no quede un "Atrás" fantasma.
+    if(!fromHistory && history.state && history.state.nexusConsultaOverlay === 'menu'){
+      history.back();
+      return;
+    }
+
+    state.view = 'home';
+    state.current = null;
+    state.query = null;
+    render();
+  }
 
   bind = function(){
     originalBind();
@@ -60,16 +76,19 @@
         render();
       };
     });
+
+    // Tocar solamente el fondo oscuro, fuera del panel, lo cierra.
+    const backdrop = document.getElementById('docMenuBackdrop');
+    if(backdrop){
+      backdrop.addEventListener('click',function(e){
+        if(e.target === backdrop) closeDocMenu(false);
+      });
+    }
   };
 
-  // El botón/gesto Atrás del navegador cierra primero el panel de los tres puntos.
+  // El botón/gesto Atrás del navegador cierra primero el panel.
   window.addEventListener('popstate',()=>{
-    if(state.view==='menu'){
-      state.view = 'home';
-      state.current = null;
-      state.query = null;
-      render();
-    }
+    if(state.view === 'menu') closeDocMenu(true);
   });
 
   // Re-render para aplicar los cambios sobre la pantalla ya creada por app.js.
