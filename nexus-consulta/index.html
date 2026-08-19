@@ -6,34 +6,13 @@
 <meta name="theme-color" content="#0b1220">
 <meta name="apple-mobile-web-app-title" content="Nexus Consulta">
 <title>Nexus Consulta</title>
-<script>
-(async()=>{
-  try{
-    if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      for(const reg of regs){
-        const scope=new URL(reg.scope).pathname;
-        if(scope==='/nexus-pwa/' || scope==='/nexus-pwa'){await reg.unregister();}
-      }
-    }
-    if('caches' in window){
-      const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k.startsWith('nexus-pwa-')).map(k=>caches.delete(k)));
-    }
-  }catch(e){}
-})();
-</script>
-<link rel="icon" href="./app-icon.svg?v=nexus-consulta-20260819c" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./app-icon.svg?v=nexus-consulta-20260819c">
-<link rel="manifest" href="./manifest.webmanifest?v=nexus-consulta-20260819c">
-<link rel="stylesheet" href="../control-remesas/styles.css?v=nexus-consulta-20260819c">
-<link rel="stylesheet" href="../control-remesas/app.css?v=nexus-consulta-20260819c">
-<link rel="stylesheet" href="./query.css?v=nexus-consulta-20260819c">
+<link rel="icon" href="./app-icon.svg?v=nexus-consulta-20260819e" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./app-icon.svg?v=nexus-consulta-20260819e">
+<link rel="manifest" href="./manifest.webmanifest?v=nexus-consulta-20260819e">
+<link rel="stylesheet" href="./query.css?v=nexus-consulta-20260819e">
+<script defer src="./app.js?v=nexus-consulta-20260819e"></script>
 </head>
 <body>
 <div id="app"></div>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="./app.js?v=nexus-consulta-20260819c"></script>
-<script src="./ux-overrides.js?v=nexus-consulta-20260819d"></script>
 </body>
 </html>
